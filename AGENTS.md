@@ -2,57 +2,41 @@
 
 You are an autonomous coding agent working on **StreamHub**.
 
-## Project Overview
+## Current Components (Variant B)
+- `core/` — API gateway (Fastify, TS). Exposes canonical `POST /query`, fans out to providers (env `PROVIDERS`, comma-separated). Health: `GET /health`. Per-provider timeout 8s.
+- Providers (source modules, no public endpoints):
+  - `providers/sample-provider/` — mock data for Matrix/John Wick, `POST /query`, health `/health`.
+  - `providers/rezka-provider/` — scrapes rezka.ag search results. Needs `REZKA_BASE_URL` (default `https://rezka.ag`) and `REZKA_USER_AGENT` optional. Streams parsing TODO. Health `/health`.
+- Adapters (client-facing, transform only):
+  - `adapters/stremio-adapter/` — Stremio addon proxying core. Endpoints: `/manifest.json`, `/catalog/:type/:id.json` (requires `search` query), `/stream/:type/:id.json` (imdb ids). Health `/health`. Env: `CORE_URL` (default `http://core:8080`), `STREMIO_ID`, `STREMIO_NAME`, `PORT`.
+- Docker: `docker-compose.yml` runs core + providers + stremio adapter. Ports exposed: core 8080, sample-provider 4000, rezka-provider 4100, stremio-adapter 7000.
 
-StreamHub is a modular backend platform that aggregates video streams from multiple sources
-and exposes a unified canonical API.
-
-The system is based on **Variant B architecture**:
-- Core service (API Gateway)
-- External modules as separate services (Docker containers)
-
-There are **two types of modules**:
-
----
-
-## 1. Module Types
-
+## Module Rules
 ### A) Source Providers
-Examples: rezka, youtube, torrents, local-hls
-
 Responsibilities:
-- Accept canonical QueryRequest
-- Fetch / scrape / resolve content from a specific source
-- Return results in canonical format (Items + Streams)
+- Accept canonical QueryRequest.
+- Fetch/scrape/resolve content from a specific source.
+- Return canonical format (Items + Streams).
 
 Rules:
-- Providers MUST NOT expose public endpoints
-- Providers MUST NOT know about clients (Stremio, Lampa, etc.)
-- Providers MUST NOT change API schema
-
-Endpoint:
-- POST /query
-
----
+- Providers MUST NOT expose public endpoints (only internal/core).
+- Providers MUST NOT know about clients (Stremio, Lampa, etc.).
+- Providers MUST NOT change API schema.
+- Endpoint: `POST /query` (+ optional `/health` for ops).
 
 ### B) Integration Adapters
-Examples: stremio-adapter, lampa-adapter, plex-adapter
-
 Responsibilities:
-- Adapt StreamHub canonical API to external client ecosystems
-- Define their own endpoints required by the target platform
-- Call StreamHub Core internally
+- Adapt StreamHub canonical API to external client ecosystems.
+- Define their own endpoints required by the target platform.
+- Call StreamHub Core internally.
 
 Rules:
-- Adapters DO NOT fetch content directly
-- Adapters NEVER scrape sources
-- Adapters ONLY transform data
+- Adapters DO NOT fetch content directly.
+- Adapters NEVER scrape sources.
+- Adapters ONLY transform data.
+- Endpoints are adapter-specific.
 
-Endpoints are adapter-specific.
-
----
-
-## 2. Canonical API (Core Contract)
+## Canonical API (Core Contract)
 
 ### QueryRequest
 ```json
@@ -62,3 +46,32 @@ Endpoints are adapter-specific.
   "type": "movie|series|any",
   "limit": 10
 }
+```
+
+### Canonical Response
+```json
+{
+  "items": [
+    {
+      "id": "tt0133093",
+      "title": "The Matrix",
+      "type": "movie",
+      "year": 1999,
+      "imdb": "tt0133093",
+      "poster": "https://...",
+      "streams": [ /* optional */ ]
+    }
+  ],
+  "streams": [
+    {
+      "id": "matrix-hd",
+      "title": "HD",
+      "url": "https://...",
+      "quality": "1080p",
+      "source": "sample-provider"
+    }
+  ],
+  "providerErrors": { "provider-url": "error (optional)" }
+}
+```
+

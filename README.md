@@ -7,6 +7,7 @@ Modular backend platform that aggregates video streams from multiple sources and
 - `providers/` — source provider services implementing `/query` and returning canonical Items + Streams.
 - `providers/rezka-provider/` — example scraper-based provider for rezka.ag search (streams extraction TODO).
 - `adapters/` — client-facing adapters (planned). Each adapts canonical API to a specific client.
+- `adapters/stremio-adapter/` — Stremio addon that proxies requests to the core and shapes responses.
 - `docker-compose.yml` — local orchestration of core + sample provider.
 
 ## Quickstart

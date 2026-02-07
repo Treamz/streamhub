@@ -5,7 +5,8 @@
   "workspaces": [
     "core",
     "providers/sample-provider",
-    "providers/rezka-provider"
+    "providers/rezka-provider",
+    "adapters/stremio-adapter"
   ],
   "scripts": {
     "lint": "echo 'TODO: lint'",

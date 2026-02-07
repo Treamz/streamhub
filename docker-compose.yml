@@ -26,3 +26,15 @@ services:
       - REZKA_BASE_URL=https://rezka.ag
     ports:
       - "4100:4100"
+
+  stremio-adapter:
+    build: ./adapters/stremio-adapter
+    environment:
+      - PORT=7000
+      - CORE_URL=http://core:8080
+      - STREMIO_ID=org.streamhub
+      - STREMIO_NAME=StreamHub
+    ports:
+      - "7000:7000"
+    depends_on:
+      - core
