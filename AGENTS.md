@@ -10,7 +10,10 @@ You are an autonomous coding agent working on **StreamHub**.
   - `providers/rezka-provider/` — scrapes rezka.ag search results. Needs `REZKA_BASE_URL` (default `https://rezka.ag`) and `REZKA_USER_AGENT` optional. Streams parsing TODO. Health `/health`.
 - Adapters (client-facing, transform only):
   - `adapters/stremio-adapter/` — Stremio addon proxying core. Endpoints: `/manifest.json`, `/catalog/:type/:id.json` (requires `search` query), `/stream/:type/:id.json` (imdb ids). Health `/health`. Env: `CORE_URL` (default `http://core:8080`), `STREMIO_ID`, `STREMIO_NAME`, `PORT`.
+    - Stremio manifest is configurable: behaviorHints.configurable, config keys `debridProvider` (`none|realdebrid`) and `debridToken`. `/stream` uses these query params to optionally debrid magnet links via Real-Debrid.
+    - Helper endpoint `/stremio/configure` builds a `stremio://` install link with supplied `debridProvider`/`debridToken` query params.
   - `adapters/lampa-adapter/` — serves plugin JS (`/plugin.js`) and `/streams` (imdb + optional season/episode) proxying to core; health `/health`.
+    - Additional `online_mod.js` plugin compatible with Lampa “online_mod” UI; calls adapter `/streams` and caches per-episode results.
 - Docker: `docker-compose.yml` runs core + providers + stremio adapter. Ports exposed: core 8080, sample-provider 4000, rezka-provider 4100, stremio-adapter 7000.
 
 ## Module Rules
