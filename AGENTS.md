@@ -15,6 +15,12 @@ You are an autonomous coding agent working on **StreamHub**.
   - `adapters/lampa-adapter/` — serves plugin JS (`/plugin.js`) and `/streams` (imdb + optional season/episode) proxying to core; health `/health`.
     - Additional `online_mod.js` plugin compatible with Lampa “online_mod” UI; calls adapter `/streams` and caches per-episode results.
 - Docker: `docker-compose.yml` runs core + providers + stremio adapter. Ports exposed: core 8080, sample-provider 4000, rezka-provider 4100, stremio-adapter 7000.
+  - `docker-compose.prod.yml` adds Traefik with HTTPS + host routing (env: `CORE_HOST`, `STREMIO_HOST`, `LAMPA_HOST`, `ACME_EMAIL`).
+  - `docker-compose.dev.yml` runs all services with bind mounts and `nodemon` (`npm run dev`), avoiding image rebuilds during development.
+
+## Dev notes
+- Dev scripts use `nodemon` to watch `src/` (and `static/` for Lampa). Start dev stack: `docker compose -f docker-compose.dev.yml up core stremio-adapter lampa-adapter rezka-provider`.
+- Rezka provider now accepts `href` or `query`, scrapes detail page to extract streams/subtitles from player config.
 
 ## Module Rules
 ### A) Source Providers

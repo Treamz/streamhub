@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "dev": "ts-node --transpile-only src/index.ts",
+    "dev": "nodemon --watch src --watch static --ext ts,js --signal SIGTERM --exec \"node --loader ts-node/esm src/index.ts\"",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js"
   },
@@ -15,6 +15,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "nodemon": "^3.1.0"
   }
 }

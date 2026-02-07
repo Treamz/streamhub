@@ -1,0 +1,95 @@
+version: "3.9"
+
+services:
+  traefik:
+    image: traefik:v3.0
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.le.acme.httpchallenge=true
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.le.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+    restart: unless-stopped
+
+  core:
+    build: ./core
+    environment:
+      - PORT=8080
+      - PROVIDERS=http://sample-provider:4000/query,http://rezka-provider:4100/query
+      - NODE_ENV=production
+    depends_on:
+      - sample-provider
+      - rezka-provider
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.core.rule=Host(`${CORE_HOST}`)
+      - traefik.http.routers.core.entrypoints=websecure
+      - traefik.http.routers.core.tls.certresolver=le
+      - traefik.http.services.core.loadbalancer.server.port=8080
+    restart: unless-stopped
+
+  sample-provider:
+    build: ./providers/sample-provider
+    environment:
+      - PORT=4000
+      - NODE_ENV=production
+    labels:
+      - traefik.enable=false
+    restart: unless-stopped
+
+  rezka-provider:
+    build: ./providers/rezka-provider
+    environment:
+      - PORT=4100
+      - REZKA_BASE_URL=https://rezkaproxy.treamz.me
+      - NODE_ENV=production
+    labels:
+      - traefik.enable=false
+    restart: unless-stopped
+
+  stremio-adapter:
+    build: ./adapters/stremio-adapter
+    environment:
+      - PORT=7000
+      - CORE_URL=http://core:8080
+      - STREMIO_ID=org.streamhub
+      - STREMIO_NAME=StreamHub
+      - NODE_ENV=production
+    depends_on:
+      - core
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.stremio.rule=Host(`${STREMIO_HOST}`)
+      - traefik.http.routers.stremio.entrypoints=websecure
+      - traefik.http.routers.stremio.tls.certresolver=le
+      - traefik.http.services.stremio.loadbalancer.server.port=7000
+    restart: unless-stopped
+
+  lampa-adapter:
+    build: ./adapters/lampa-adapter
+    environment:
+      - PORT=7011
+      - CORE_URL=http://core:8080
+      - NODE_ENV=production
+    depends_on:
+      - core
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.lampa.rule=Host(`${LAMPA_HOST}`)
+      - traefik.http.routers.lampa.entrypoints=websecure
+      - traefik.http.routers.lampa.tls.certresolver=le
+      - traefik.http.services.lampa.loadbalancer.server.port=7011
+    restart: unless-stopped
+
+networks:
+  default:
+    name: streamhub

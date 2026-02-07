@@ -23,7 +23,7 @@ services:
     build: ./providers/rezka-provider
     environment:
       - PORT=4100
-      - REZKA_BASE_URL=https://rezka.ag
+      - REZKA_BASE_URL=https://rezkaproxy.treamz.me
     ports:
       - "4100:4100"
 

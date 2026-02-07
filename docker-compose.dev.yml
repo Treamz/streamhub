@@ -1,0 +1,79 @@
+version: "3.9"
+
+services:
+  core:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./core:/app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      - PORT=8080
+      - PROVIDERS=http://sample-provider:4000/query,http://rezka-provider:4100/query
+      - NODE_ENV=development
+    ports:
+      - "8080:8080"
+    depends_on:
+      - sample-provider
+      - rezka-provider
+
+  sample-provider:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./providers/sample-provider:/app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      - PORT=4000
+      - NODE_ENV=development
+    ports:
+      - "4000:4000"
+
+  rezka-provider:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./providers/rezka-provider:/app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      - PORT=4100
+      - REZKA_BASE_URL=https://rezkaproxy.treamz.me
+      - NODE_ENV=development
+    ports:
+      - "4100:4100"
+
+  stremio-adapter:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./adapters/stremio-adapter:/app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      - PORT=7000
+      - CORE_URL=http://core:8080
+      - STREMIO_ID=org.streamhub
+      - STREMIO_NAME=StreamHub
+      - NODE_ENV=development
+    ports:
+      - "7010:7000"
+    depends_on:
+      - core
+
+  lampa-adapter:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./adapters/lampa-adapter:/app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      - PORT=7011
+      - CORE_URL=http://core:8080
+      - NODE_ENV=development
+    ports:
+      - "7011:7011"
+    depends_on:
+      - core
+
+networks:
+  default:
+    name: streamhub-dev
