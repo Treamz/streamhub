@@ -37,9 +37,58 @@ const manifest = {
     { id: 'streamhub-any', type: 'movie', name: 'StreamHub Movies', extra: [{ name: 'search', isRequired: true }] },
     { id: 'streamhub-any', type: 'series', name: 'StreamHub Series', extra: [{ name: 'search', isRequired: true }] },
   ],
+  behaviorHints: { configurable: true },
+  config: [
+    {
+      key: 'debridProvider',
+      title: 'Debrid provider',
+      type: 'select',
+      options: ['none', 'realdebrid'],
+      default: 'none',
+      required: false,
+    },
+    {
+      key: 'debridToken',
+      title: 'Debrid API token',
+      type: 'text',
+      required: false,
+    },
+  ],
 };
 
 fastify.get('/manifest.json', async () => manifest);
+
+fastify.get('/stremio/configure', async (request, reply) => {
+  const query = request.query as Record<string, string | undefined>;
+  const debridProvider = (query.debridProvider ?? 'realdebrid').toLowerCase();
+  const debridToken = query.debridToken ?? query.token;
+
+  if (!debridToken) {
+    reply.code(400);
+    return {
+      err: 'debridToken (or token) query parameter required',
+      example: '/stremio/configure?debridProvider=realdebrid&debridToken=YOUR_TOKEN',
+    };
+  }
+
+  const host = request.headers['x-forwarded-host'] ?? request.headers.host;
+  const proto = (request.headers['x-forwarded-proto'] as string) ?? request.protocol ?? 'http';
+  const baseHttp = `${proto}://${host}/manifest.json`;
+  const withParams = `${baseHttp}?debridProvider=${encodeURIComponent(debridProvider)}&debridToken=${encodeURIComponent(debridToken)}`;
+  const stremioLink = `stremio://${withParams.replace(/^https?:\/\//, '')}`;
+
+  // For browsers: show a tiny HTML page with the clickable stremio:// link and the plain HTTP URL.
+  const html = `
+    <html><body style="font-family: sans-serif">
+      <p>Click to install in Stremio:</p>
+      <p><a href="${stremioLink}">${stremioLink}</a></p>
+      <p>If the link does not open, copy this URL into Stremio add-on install:</p>
+      <code>${withParams}</code>
+    </body></html>
+  `;
+
+  reply.type('text/html').send(html);
+});
 
 fastify.get('/catalog/:type/:id.json', async (request, reply) => {
   const { type, id } = request.params as { type: string; id: string };
@@ -69,6 +118,8 @@ fastify.get('/stream/:type/:id.json', async (request, reply) => {
   const query = request.query as Record<string, string | undefined>;
   const season = query.season ? Number(query.season) : undefined;
   const episode = query.episode ? Number(query.episode) : undefined;
+  const debridProvider = (query.debridProvider ?? 'none').toLowerCase();
+  const debridToken = query.debridToken;
   const imdb = id.startsWith('tt') ? id : undefined;
   if (!imdb) {
     reply.code(400);
@@ -76,8 +127,10 @@ fastify.get('/stream/:type/:id.json', async (request, reply) => {
   }
 
   const streams = await queryCoreStreams({ imdb, type, season, episode });
+  const processed = await maybeDebridStreams(streams, debridProvider, debridToken, request.log);
+
   return {
-    streams: streams.map((stream) => ({
+    streams: processed.map((stream) => ({
       name: stream.source ?? 'StreamHub',
       title: stream.title,
       url: stream.url,
@@ -110,6 +163,82 @@ async function queryCoreStreams(payload: { query?: string; imdb?: string; imdbId
   }
   const data = (await response.json()) as { streams?: CanonicalStream[] };
   return data.streams ?? [];
+}
+
+async function maybeDebridStreams(streams: CanonicalStream[], provider: string, token: string | undefined, log: any) {
+  if (!token || provider === 'none') return streams;
+  if (provider !== 'realdebrid') return streams;
+
+  const out: CanonicalStream[] = [];
+  for (const stream of streams) {
+    if (!stream.url?.startsWith('magnet:')) {
+      out.push(stream);
+      continue;
+    }
+
+    try {
+      const debrided = await debridMagnetRealDebrid(stream.url, token);
+      if (debrided) {
+        out.push({
+          ...stream,
+          url: debrided,
+          source: `${stream.source ?? 'StreamHub'} (RD)`,
+        });
+        continue;
+      }
+    } catch (err) {
+      log.warn({ err }, 'debrid failed');
+    }
+    out.push(stream);
+  }
+  return out;
+}
+
+async function debridMagnetRealDebrid(magnet: string, token: string): Promise<string | undefined> {
+  // 1) Add magnet, get torrent id
+  const addRes = await fetch('https://api.real-debrid.com/rest/1.0/torrents/addMagnet', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ magnet }),
+  });
+  if (!addRes.ok) throw new Error(`RD addMagnet ${addRes.status}`);
+  const { id } = (await addRes.json()) as { id: string };
+
+  // 2) Fetch files to pick the largest video
+  const info = await rdInfo(id, token);
+  const videoFiles = info.files.filter((f) => f.path.match(/\.(mp4|mkv|avi|mov|m4v)$/i));
+  if (!videoFiles.length) throw new Error('RD no video files');
+  const target = videoFiles.sort((a, b) => b.bytes - a.bytes)[0];
+
+  // 3) Select file
+  await fetch(`https://api.real-debrid.com/rest/1.0/torrents/selectFiles/${id}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ files: String(target.id) }),
+  });
+
+  // 4) Refresh info to get generated links
+  const infoAfter = await rdInfo(id, token);
+  const link = infoAfter.links?.[0];
+  if (!link) throw new Error('RD no generated link');
+
+  // 5) Unrestrict to direct URL
+  const unRes = await fetch('https://api.real-debrid.com/rest/1.0/unrestrict/link', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ link }),
+  });
+  if (!unRes.ok) throw new Error(`RD unrestrict ${unRes.status}`);
+  const un = (await unRes.json()) as { download?: string };
+  return un.download;
+}
+
+async function rdInfo(id: string, token: string) {
+  const res = await fetch(`https://api.real-debrid.com/rest/1.0/torrents/info/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`RD info ${res.status}`);
+  return (await res.json()) as { files: { id: number; path: string; bytes: number }[]; links?: string[] };
 }
 
 fastify.get('/health', async () => ({ status: 'ok' }));
