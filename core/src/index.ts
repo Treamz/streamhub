@@ -48,11 +48,11 @@ fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
     return { error: 'Provide at least query or imdb' };
   }
 
-  const controller = new AbortController();
-  request.raw.on('close', () => controller.abort());
-
   const providerResults = await Promise.all(
     PROVIDER_ENDPOINTS.map(async (endpoint) => {
+      // per-provider timeout to avoid hanging requests
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
       try {
         const response = await fetch(endpoint, {
           method: 'POST',
@@ -67,8 +67,13 @@ fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
         const data = (await response.json()) as ProviderResponse;
         return { endpoint, data };
       } catch (error) {
+        const message = (error as Error).name === 'AbortError'
+          ? 'Timed out after 8s'
+          : (error as Error).message;
         request.log.error({ err: error, endpoint }, 'Provider call failed');
-        return { endpoint, error: (error as Error).message };
+        return { endpoint, error: message };
+      } finally {
+        clearTimeout(timeout);
       }
     })
   );
