@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  core:
+    build: ./core
+    environment:
+      - PORT=8080
+      - PROVIDERS=http://sample-provider:4000/query,http://rezka-provider:4100/query
+    ports:
+      - "8080:8080"
+    depends_on:
+      - sample-provider
+      - rezka-provider
+
+  sample-provider:
+    build: ./providers/sample-provider
+    environment:
+      - PORT=4000
+    ports:
+      - "4000:4000"
+
+  rezka-provider:
+    build: ./providers/rezka-provider
+    environment:
+      - PORT=4100
+      - REZKA_BASE_URL=https://rezka.ag
+    ports:
+      - "4100:4100"
