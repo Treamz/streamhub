@@ -1,5 +1,5 @@
 {
-  "name": "streamhub-core",
+  "name": "lampa-adapter",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
@@ -10,9 +10,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "fastify": "^4.28.1",
-    "@fastify/swagger": "^8.14.0",
-    "@fastify/swagger-ui": "^1.8.0"
+    "fastify": "^4.28.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -35,6 +35,16 @@ services:
       - STREMIO_ID=org.streamhub
       - STREMIO_NAME=StreamHub
     ports:
-      - "7000:7000"
+      - "7010:7000"
+    depends_on:
+      - core
+
+  lampa-adapter:
+    build: ./adapters/lampa-adapter
+    environment:
+      - PORT=7011
+      - CORE_URL=http://core:8080
+    ports:
+      - "7011:7011"
     depends_on:
       - core

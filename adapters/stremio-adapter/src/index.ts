@@ -43,13 +43,15 @@ fastify.get('/manifest.json', async () => manifest);
 
 fastify.get('/catalog/:type/:id.json', async (request, reply) => {
   const { type, id } = request.params as { type: string; id: string };
-  const search = (request.query as Record<string, string>).search;
+  const query = request.query as Record<string, string>;
+  const search = query.search;
+  const year = query.year ? Number(query.year) : undefined;
   if (!search) {
     reply.code(400);
     return { err: 'search is required' };
   }
 
-  const items = await queryCoreItems({ query: search, type });
+  const items = await queryCoreItems({ query: search, type, year });
   return {
     metas: items.map((item) => ({
       id: item.id,
@@ -64,13 +66,16 @@ fastify.get('/catalog/:type/:id.json', async (request, reply) => {
 
 fastify.get('/stream/:type/:id.json', async (request, reply) => {
   const { id, type } = request.params as { id: string; type: string };
+  const query = request.query as Record<string, string | undefined>;
+  const season = query.season ? Number(query.season) : undefined;
+  const episode = query.episode ? Number(query.episode) : undefined;
   const imdb = id.startsWith('tt') ? id : undefined;
   if (!imdb) {
     reply.code(400);
     return { err: 'Only imdb ids supported (tt...)' };
   }
 
-  const streams = await queryCoreStreams({ imdb, type });
+  const streams = await queryCoreStreams({ imdb, type, season, episode });
   return {
     streams: streams.map((stream) => ({
       name: stream.source ?? 'StreamHub',
@@ -81,7 +86,7 @@ fastify.get('/stream/:type/:id.json', async (request, reply) => {
   };
 });
 
-async function queryCoreItems(payload: { query?: string; imdb?: string; type?: string }) {
+async function queryCoreItems(payload: { query?: string; imdb?: string; imdbId?: string; type?: string; season?: number; episode?: number; year?: number }) {
   const response = await fetch(`${CORE_URL}/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -94,7 +99,7 @@ async function queryCoreItems(payload: { query?: string; imdb?: string; type?: s
   return data.items ?? [];
 }
 
-async function queryCoreStreams(payload: { query?: string; imdb?: string; type?: string }) {
+async function queryCoreStreams(payload: { query?: string; imdb?: string; imdbId?: string; type?: string; season?: number; episode?: number; year?: number }) {
   const response = await fetch(`${CORE_URL}/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

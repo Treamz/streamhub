@@ -1,9 +1,16 @@
 import Fastify from 'fastify';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 
 interface QueryRequest {
   query?: string;
   imdb?: string;
+  imdbId?: string;
+  imdbid?: string; // allow camel or lower
   type?: 'movie' | 'series' | 'any';
+  year?: number;
+  season?: number;
+  episode?: number;
   limit?: number;
 }
 
@@ -39,14 +46,99 @@ const PROVIDER_ENDPOINTS = (process.env.PROVIDERS ?? 'http://sample-provider:400
 
 const fastify = Fastify({ logger: true });
 
+await fastify.register(swagger, {
+  openapi: {
+    info: {
+      title: 'StreamHub Core API',
+      version: '0.1.0',
+      description: 'Canonical /query endpoint used by adapters and providers',
+    },
+  },
+});
+
+await fastify.register(swaggerUi, {
+  routePrefix: '/docs',
+  uiConfig: {
+    docExpansion: 'list',
+    deepLinking: false,
+  },
+});
+
 fastify.get('/health', async () => ({ status: 'ok' }));
 
-fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
+fastify.post<{ Body: QueryRequest }>('/query', {
+  schema: {
+    summary: 'Canonical query',
+    body: {
+      type: 'object',
+      properties: {
+        query: { type: 'string' },
+        imdb: { type: 'string' },
+        imdbId: { type: 'string' },
+        imdbid: { type: 'string' },
+        type: { type: 'string', enum: ['movie', 'series', 'any'] },
+        year: { type: 'integer' },
+        season: { type: 'integer' },
+        episode: { type: 'integer' },
+        limit: { type: 'integer', minimum: 1, maximum: 50 },
+      },
+      additionalProperties: false,
+    },
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                title: { type: 'string' },
+                type: { type: 'string' },
+                year: { type: 'integer' },
+                imdb: { type: 'string' },
+                overview: { type: 'string' },
+                poster: { type: 'string' },
+              },
+            },
+          },
+          streams: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                title: { type: 'string' },
+                url: { type: 'string' },
+                quality: { type: 'string' },
+                source: { type: 'string' },
+              },
+            },
+          },
+          providerErrors: {
+            type: 'object',
+            additionalProperties: { type: 'string' },
+          },
+        },
+      },
+      400: { type: 'object', properties: { error: { type: 'string' } } },
+      502: { type: 'object', properties: { error: { type: 'string' } } },
+    },
+  },
+}, async (request, reply) => {
   const payload = request.body ?? {};
-  if (!payload.query && !payload.imdb) {
+  const imdbNormalized = payload.imdb ?? payload.imdbId ?? payload.imdbid;
+
+  if (!payload.query && !imdbNormalized) {
     reply.code(400);
-    return { error: 'Provide at least query or imdb' };
+    return { error: 'Provide at least query or imdb/imdbId' };
   }
+
+  const normalizedPayload: QueryRequest = {
+    ...payload,
+    imdb: imdbNormalized,
+  };
 
   const providerResults = await Promise.all(
     PROVIDER_ENDPOINTS.map(async (endpoint) => {
@@ -57,7 +149,7 @@ fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(normalizedPayload),
           signal: controller.signal,
         });
 

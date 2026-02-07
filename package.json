@@ -6,7 +6,8 @@
     "core",
     "providers/sample-provider",
     "providers/rezka-provider",
-    "adapters/stremio-adapter"
+    "adapters/stremio-adapter",
+    "adapters/lampa-adapter"
   ],
   "scripts": {
     "lint": "echo 'TODO: lint'",

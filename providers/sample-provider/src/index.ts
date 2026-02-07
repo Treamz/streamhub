@@ -3,7 +3,12 @@ import Fastify from 'fastify';
 interface QueryRequest {
   query?: string;
   imdb?: string;
+  imdbId?: string;
+  imdbid?: string;
   type?: 'movie' | 'series' | 'any';
+  year?: number;
+  season?: number;
+  episode?: number;
   limit?: number;
 }
 
@@ -52,15 +57,16 @@ const MOCK_ITEMS = [
 fastify.get('/health', async () => ({ status: 'ok' }));
 
 fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
-  const { query, imdb, type, limit = 10 } = request.body ?? {};
-  if (!query && !imdb) {
+  const { query, imdb, imdbId, imdbid, type, year, limit = 10 } = request.body ?? {};
+  const imdbNormalized = imdb ?? imdbId ?? imdbid;
+  if (!query && !imdbNormalized) {
     reply.code(400);
     return { error: 'Provide at least query or imdb' };
   }
 
   let results = MOCK_ITEMS;
-  if (imdb) {
-    results = results.filter((item) => item.imdb === imdb);
+  if (imdbNormalized) {
+    results = results.filter((item) => item.imdb === imdbNormalized);
   }
   if (query) {
     const lowered = query.toLowerCase();
@@ -68,6 +74,9 @@ fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
   }
   if (type && type !== 'any') {
     results = results.filter((item) => item.type === type);
+  }
+  if (year) {
+    results = results.filter((item) => item.year === year);
   }
 
   return {
