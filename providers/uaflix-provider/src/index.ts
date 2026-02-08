@@ -4,6 +4,7 @@ import { load } from 'cheerio';
 
 interface QueryRequest {
   query?: string;
+  imdb?: string;
   href?: string;
   limit?: number;
   season?: number;
@@ -41,22 +42,26 @@ const fastify = Fastify({ logger: true });
 fastify.get('/health', async () => ({ status: 'ok' }));
 
 fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
-  const { query, href, limit = 10, season, episode, type, year } = request.body ?? {};
-  if (!query && !href) {
+  const { query, imdb, href, limit = 10, season, episode, type: _type, year: _year } = request.body ?? {};
+
+  const normalizedQuery = query ?? (imdb && imdb.startsWith('http') ? undefined : imdb);
+  const normalizedHref = href ?? (imdb && imdb.startsWith('http') ? imdb : undefined);
+
+  if (!normalizedQuery && !normalizedHref) {
     reply.code(400);
-    return { error: 'Provide query or href' };
+    return { error: 'Provide query or imdb or href' };
   }
 
   try {
     const items: Item[] = [];
 
-    if (href) {
-      const detail = await loadDetail(href, request, season, episode);
+    if (normalizedHref) {
+      const detail = await loadDetail(normalizedHref, request, season, episode);
       if (detail) items.push(detail);
     }
 
-    if (query) {
-      const html = await search(query, request);
+    if (normalizedQuery) {
+      const html = await search(normalizedQuery, request);
       if (html) items.push(...parseSearch(html, limit));
     }
 

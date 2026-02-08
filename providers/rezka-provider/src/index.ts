@@ -6,6 +6,9 @@ interface QueryRequest {
   query?: string;
   imdb?: string;
   type?: 'movie' | 'series' | 'any';
+  year?: number;
+  season?: number;
+  episode?: number;
   limit?: number;
   href?: string; // direct rezka URL (optional)
 }
@@ -41,22 +44,27 @@ const fastify = Fastify({ logger: true });
 fastify.get('/health', async () => ({ status: 'ok' }));
 
 fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
-  const { query, limit = 10, href } = request.body ?? {};
-  if (!query && !href) {
+  const { query, imdb, limit = 10, href } = request.body ?? {};
+
+  // Treat imdb as search string if no explicit query; also allow direct URL in imdb field.
+  const normalizedQuery = query ?? (imdb && imdb.startsWith('http') ? undefined : imdb);
+  const normalizedHref = href ?? (imdb && imdb.startsWith('http') ? imdb : undefined);
+
+  if (!normalizedQuery && !normalizedHref) {
     reply.code(400);
-    return { error: 'Provide query or href for rezka search' };
+    return { error: 'Provide query or imdb or href for rezka search' };
   }
 
   try {
     const items: Item[] = [];
 
-    if (href) {
-      const detail = await scrapeDetail(href);
+    if (normalizedHref) {
+      const detail = await scrapeDetail(normalizedHref);
       if (detail) items.push(detail);
     }
 
-    if (query) {
-      const searchUrl = `${BASE_URL}/index.php?do=search&subaction=search&q=${encodeURIComponent(query)}`;
+    if (normalizedQuery) {
+      const searchUrl = `${BASE_URL}/index.php?do=search&subaction=search&q=${encodeURIComponent(normalizedQuery)}`;
       const response = await fetch(searchUrl, { headers: { 'User-Agent': USER_AGENT } });
       if (!response.ok) throw new Error(`Search failed with ${response.status}`);
       const html = await response.text();

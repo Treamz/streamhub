@@ -8,6 +8,7 @@ interface QueryRequest {
   season?: number;
   episode?: number;
   type?: 'movie' | 'series' | 'any';
+  year?: number;
   limit?: number;
 }
 
@@ -57,7 +58,7 @@ const fastify = Fastify({ logger: true });
 fastify.get('/health', async () => ({ status: 'ok' }));
 
 fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
-  const { query, imdb, kinopoisk, season, episode, type = 'any', limit = 10 } = request.body ?? {};
+  const { query, imdb, kinopoisk, season, episode, type = 'any', year: _year, limit = 10 } = request.body ?? {};
   if (!query && !imdb && !kinopoisk) {
     reply.code(400);
     return { error: 'Provide query or imdb or kinopoisk' };
