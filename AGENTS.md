@@ -9,13 +9,14 @@ You are an autonomous coding agent working on **StreamHub**.
   - `providers/sample-provider/` — mock data for Matrix/John Wick, `POST /query`, health `/health`.
   - `providers/rezka-provider/` — scrapes rezka (default mirror `https://rezkaproxy.treamz.me`). Env: `REZKA_BASE_URL`, `REZKA_USER_AGENT`. Streams parsed from player config.
   - `providers/eneyida-provider/` — scraper for eneyida (default `https://eneyida.tv`). Env: `ENEYIDA_BASE_URL`, `ENEYIDA_USER_AGENT`. Tries search + detail, extracts streams from common player patterns.
+  - `providers/uaflix-provider/` — scraper for uafix/uaflix (default `https://uafix.net`). Env: `UAFLIX_BASE_URL`, `UAFLIX_USER_AGENT`. Parses search, iframes (Ashdi/m3u8), supports season/episode when JSON is present.
 - Adapters (client-facing, transform only):
   - `adapters/stremio-adapter/` — Stremio addon proxying core. Endpoints: `/manifest.json`, `/catalog/:type/:id.json` (requires `search` query), `/stream/:type/:id.json` (imdb ids). Health `/health`. Env: `CORE_URL` (default `http://core:8080`), `STREMIO_ID`, `STREMIO_NAME`, `PORT`.
     - Stremio manifest is configurable: behaviorHints.configurable, config keys `debridProvider` (`none|realdebrid`) and `debridToken`. `/stream` uses these query params to optionally debrid magnet links via Real-Debrid.
     - Helper endpoint `/stremio/configure` builds a `stremio://` install link with supplied `debridProvider`/`debridToken` query params.
   - `adapters/lampa-adapter/` — serves plugin JS (`/plugin.js`) and `/streams` (imdb + optional season/episode) proxying to core; health `/health`.
     - Additional `online_mod.js` plugin compatible with Lampa “online_mod” UI; calls adapter `/streams` and caches per-episode results.
-- Docker: `docker-compose.yml` runs core + providers + stremio adapter. Ports exposed: core 8080, sample-provider 4000, rezka-provider 4100, eneyida-provider 4200, stremio-adapter 7000.
+- Docker: `docker-compose.yml` runs core + providers + stremio adapter. Ports exposed: core 8080, sample-provider 4000, rezka-provider 4100, eneyida-provider 4200, uaflix-provider 4300, stremio-adapter 7000.
   - `docker-compose.prod.yml` adds Traefik with HTTPS + host routing (env: `CORE_HOST`, `STREMIO_HOST`, `LAMPA_HOST`, `ACME_EMAIL`).
   - `docker-compose.dev.yml` runs all services with bind mounts and `nodemon` (`npm run dev`), avoiding image rebuilds during development.
 

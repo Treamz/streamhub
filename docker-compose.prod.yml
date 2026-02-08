@@ -66,6 +66,16 @@ services:
       - traefik.enable=false
     restart: unless-stopped
 
+  uaflix-provider:
+    build: ./providers/uaflix-provider
+    environment:
+      - PORT=4300
+      - UAFLIX_BASE_URL=https://uafix.net
+      - NODE_ENV=production
+    labels:
+      - traefik.enable=false
+    restart: unless-stopped
+
   stremio-adapter:
     build: ./adapters/stremio-adapter
     environment:

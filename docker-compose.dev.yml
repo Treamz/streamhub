@@ -57,6 +57,21 @@ services:
     depends_on:
       - core
 
+  uaflix-provider:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./providers/uaflix-provider:/app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      - PORT=4300
+      - UAFLIX_BASE_URL=https://uafix.net
+      - NODE_ENV=development
+    ports:
+      - "4300:4300"
+    depends_on:
+      - core
+
   stremio-adapter:
     image: node:20
     working_dir: /app

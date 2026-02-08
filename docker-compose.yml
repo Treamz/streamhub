@@ -39,6 +39,16 @@ services:
       - rezka-provider
       - sample-provider
 
+  uaflix-provider:
+    build: ./providers/uaflix-provider
+    environment:
+      - PORT=4300
+      - UAFLIX_BASE_URL=https://uafix.net
+    ports:
+      - "4300:4300"
+    depends_on:
+      - core
+
   stremio-adapter:
     build: ./adapters/stremio-adapter
     environment:
