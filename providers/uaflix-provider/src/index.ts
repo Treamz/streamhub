@@ -42,9 +42,8 @@ const fastify = Fastify({ logger: true });
 fastify.get('/health', async () => ({ status: 'ok' }));
 
 fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
-  const { query, imdb, href, limit = 10, season, episode, type: _type, year: _year } = request.body ?? {};
-
-  const normalizedQuery = query ?? (imdb && imdb.startsWith('http') ? undefined : imdb);
+  const { query, imdb, href, limit = 10, season, episode, type, year } = request.body ?? {};
+  const normalizedQuery = query ?? (imdb && !imdb.startsWith('http') ? imdb : undefined);
   const normalizedHref = href ?? (imdb && imdb.startsWith('http') ? imdb : undefined);
 
   if (!normalizedQuery && !normalizedHref) {
@@ -65,17 +64,19 @@ fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
       if (html) items.push(...parseSearch(html, limit));
     }
 
-    if (items[0] && (!items[0].streams || !items[0].streams.length) && items[0].id.startsWith('http')) {
+    const filteredItems = year ? items.filter((i) => i.year === year) : items;
+
+    if (filteredItems[0] && (!filteredItems[0].streams || !filteredItems[0].streams.length) && filteredItems[0].id.startsWith('http')) {
       try {
-        const detail = await loadDetail(items[0].id, request, season, episode);
-        if (detail?.streams?.length) items[0].streams = detail.streams;
+        const detail = await loadDetail(filteredItems[0].id, request, season, episode);
+        if (detail?.streams?.length) filteredItems[0].streams = detail.streams;
       } catch (err) {
         request.log.warn({ err }, 'uaflix enrich failed');
       }
     }
 
-    const streams = items[0]?.streams ?? [];
-    return { items, streams };
+    const streams = filteredItems[0]?.streams ?? [];
+    return { items: filteredItems, streams };
   } catch (err) {
     request.log.error({ err }, 'uaflix failed');
     reply.code(502);

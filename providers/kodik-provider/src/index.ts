@@ -58,7 +58,7 @@ const fastify = Fastify({ logger: true });
 fastify.get('/health', async () => ({ status: 'ok' }));
 
 fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
-  const { query, imdb, kinopoisk, season, episode, type = 'any', year: _year, limit = 10 } = request.body ?? {};
+  const { query, imdb, kinopoisk, season, episode, type = 'any', year, limit = 10 } = request.body ?? {};
   if (!query && !imdb && !kinopoisk) {
     reply.code(400);
     return { error: 'Provide query or imdb or kinopoisk' };
@@ -70,13 +70,14 @@ fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
 
   try {
     const results = await searchKodik({ query, imdb, kinopoisk, season, type, limit }, request);
-    if (!results.length) return { items: [], streams: [] };
+    const filteredResults = year ? results.filter((r) => r.year === year) : results;
+    if (!filteredResults.length) return { items: [], streams: [] };
 
-    const items: Item[] = results.map((r) => toItem(r));
+    const items: Item[] = filteredResults.map((r) => toItem(r));
 
     // attach streams for first item if season/episode specified or if movie
     if (items[0]) {
-      const streams = extractStreams(results[0], season, episode);
+      const streams = extractStreams(filteredResults[0], season, episode);
       if (streams.length) items[0].streams = streams;
       return { items, streams: items[0].streams ?? [] };
     }

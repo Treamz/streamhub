@@ -10,7 +10,6 @@ interface QueryRequest {
   season?: number;
   episode?: number;
   year?: number;
-  type?: 'movie' | 'series' | 'any';
 }
 
 interface Stream {
@@ -60,10 +59,8 @@ const fastify = Fastify({ logger: true });
 fastify.get('/health', async () => ({ status: 'ok' }));
 
 fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
-  const { query, imdb, href, limit = 10, season, episode } = request.body ?? {};
-
-  // imdb acts as fallback query; if it's a URL treat as href.
-  const normalizedQuery = query ?? (imdb && imdb.startsWith('http') ? undefined : imdb);
+  const { query, imdb, href, limit = 10, season, episode, year } = request.body ?? {};
+  const normalizedQuery = query ?? (imdb && !imdb.startsWith('http') ? imdb : undefined);
   const normalizedHref = href ?? (imdb && imdb.startsWith('http') ? imdb : undefined);
 
   if (!normalizedQuery && !normalizedHref) {
@@ -86,18 +83,20 @@ fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
       }
     }
 
+    const filteredItems = year ? items.filter((i) => i.year === year) : items;
+
     // Enrich first result if streams are empty
-    if (items[0] && (!items[0].streams || !items[0].streams.length) && items[0].id.startsWith('http')) {
+    if (filteredItems[0] && (!filteredItems[0].streams || !filteredItems[0].streams.length) && filteredItems[0].id.startsWith('http')) {
       try {
-        const detail = await loadDetail(items[0].id, request, season, episode);
-        if (detail?.streams?.length) items[0].streams = detail.streams;
+        const detail = await loadDetail(filteredItems[0].id, request, season, episode);
+        if (detail?.streams?.length) filteredItems[0].streams = detail.streams;
       } catch (err) {
         request.log.warn({ err }, 'eneyida enrich failed');
       }
     }
 
-    const streams = items[0]?.streams ?? [];
-    return { items, streams };
+    const streams = filteredItems[0]?.streams ?? [];
+    return { items: filteredItems, streams };
   } catch (err) {
     request.log.error({ err }, 'eneyida failed');
     reply.code(502);
@@ -176,7 +175,8 @@ async function loadDetail(url: string, request: any, season?: number, episode?: 
   let playerHtml = '';
   if (iframeSrc) {
     try {
-      const p = await fetch(iframeSrc, { headers: { 'User-Agent': USER_AGENT, Referer: url } });
+      const origin = new URL(iframeSrc).origin;
+      const p = await fetch(iframeSrc, { headers: { 'User-Agent': USER_AGENT, Referer: url, Origin: origin } });
       if (p.ok) playerHtml = await p.text();
       request.log.info({ iframeSrc, status: p.status }, 'eneyida iframe');
     } catch (err) {
@@ -198,7 +198,7 @@ async function loadDetail(url: string, request: any, season?: number, episode?: 
 
 function extractStreams(html: string, season: number | undefined, episode: number | undefined, request: any): Stream[] {
   const streams: Stream[] = [];
-  const filePart = pickConfigValue(html, 'file');
+  const filePart = pickConfigValue(html, 'file') ?? pickConfigValue(html, 'link');
   const subtitlesRaw = pickConfigValue(html, 'subtitle') ?? '';
 
   if (filePart) {
@@ -214,6 +214,19 @@ function extractStreams(html: string, season: number | undefined, episode: numbe
     });
   }
 
+  // Fallback: capture any m3u8 links in page/iframe HTML
+  if (!streams.length) {
+    const m = html.match(/https?:[^"'\\s]+\\.m3u8/gi);
+    if (m && m.length) {
+      m.forEach((u) => pushStream(streams, u, undefined, 'eneyida'));
+    }
+  }
+  // Fallback: capture any mp4 links
+  if (!streams.length) {
+    const m = html.match(/https?:[^"'\\s]+\\.(mp4|mkv|avi)/gi);
+    if (m && m.length) m.forEach((u) => pushStream(streams, u, undefined, 'eneyida'));
+  }
+
   if (subtitlesRaw && streams.length) {
     const subs = parseSubtitles(subtitlesRaw);
     if (subs.length) streams[0].subtitles = subs;
@@ -224,13 +237,14 @@ function extractStreams(html: string, season: number | undefined, episode: numbe
 }
 
 function addFromFilePayload(raw: string, season: number | undefined, episode: number | undefined, acc: Stream[], request: any) {
-  const parsed = tryJson(raw, request);
+  const cleaned = raw.trim().replace(/;$/, '');
+  const parsed = tryJson(cleaned, request);
   if (parsed) {
     addFromPlayerJson(parsed, season, episode, acc);
     return;
   }
   // If JSON failed, try to pull any http(s) links from the raw string
-  const urls = Array.from(raw.matchAll(/https?:\/\/[^\s'"]+/g)).map((m) => m[0]);
+  const urls = Array.from(cleaned.matchAll(/https?:\/\/[^\s'"]+/g)).map((m) => m[0]);
   if (urls.length) {
     urls.forEach((u) => pushStream(acc, u, undefined, 'eneyida'));
   } else if (!raw.trim().startsWith('[') && !raw.trim().startsWith('{')) {
@@ -243,7 +257,7 @@ function addFromFilePayload(raw: string, season: number | undefined, episode: nu
 
 function tryJson(text: string, request: any): any | null {
   try {
-    const normalized = text.trim().replace(/'/g, '"');
+    const normalized = decodeEntities(text.trim()).replace(/'/g, '"');
     return JSON.parse(normalized);
   } catch (err) {
     request?.log?.warn({ err, raw: text.slice(0, 200) }, 'eneyida json parse failed');
@@ -259,18 +273,20 @@ function addFromPlayerJson(parsed: any, season: number | undefined, episode: num
         if (ep) {
           pushStream(acc, ep.file, voice.title || ep.title || 'episode', voice.title || 'eneyida');
           addSubs(acc, ep.subtitle);
-          return;
+          // don't return; continue to collect other voices
         }
       }
       if (voice.file) {
         pushStream(acc, voice.file, voice.title, voice.title);
-        return;
       }
     }
   } else if (parsed && typeof parsed === 'object') {
-    for (const [k, v] of Object.entries(parsed as Record<string, string>)) {
-      pushStream(acc, v, k, 'eneyida');
-    }
+    // hdvb style: seasons/episodes keyed as S1E1, or voice map
+    const values = Object.values(parsed as Record<string, any>);
+    values.forEach((v) => {
+      if (typeof v === 'string') pushStream(acc, v, undefined, 'eneyida');
+      else if (v && typeof v === 'object' && 'file' in v) pushStream(acc, (v as any).file, v.title as string, 'eneyida');
+    });
   }
 }
 
@@ -318,12 +334,21 @@ function parseSubtitles(raw: string): { url: string; lang?: string; label?: stri
   return subs;
 }
 
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&quot;/g, '"')
+    .replace(/&#34;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
 function pickConfigValue(html: string, key: string): string | null {
-  // Try quoted value
-  const quoted = new RegExp(`${key}\\s*:\\s*['"]([^'"]+)['"]`, 'i').exec(html);
-  if (quoted) return quoted[1];
+  // Try quoted value, allowing nested quotes and newlines (lazy)
+  const quoted = new RegExp(`${key}\\s*[:=]\\s*(['"])([\\s\\S]*?)\\1`, 'i').exec(html);
+  if (quoted) return quoted[2];
   // Try unquoted JSON-like value until line break or comma/semicolon
-  const unquoted = new RegExp(`${key}\\s*:\\s*([^,;\\n]+)`, 'i').exec(html);
+  const unquoted = new RegExp(`${key}\\s*[:=]\\s*([^,;\\n]+)`, 'i').exec(html);
   if (unquoted) return unquoted[1].trim();
   return null;
 }

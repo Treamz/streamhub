@@ -6,9 +6,9 @@ interface QueryRequest {
   query?: string;
   imdb?: string;
   type?: 'movie' | 'series' | 'any';
-  year?: number;
   season?: number;
   episode?: number;
+  year?: number;
   limit?: number;
   href?: string; // direct rezka URL (optional)
 }
@@ -44,10 +44,8 @@ const fastify = Fastify({ logger: true });
 fastify.get('/health', async () => ({ status: 'ok' }));
 
 fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
-  const { query, imdb, limit = 10, href } = request.body ?? {};
-
-  // Treat imdb as search string if no explicit query; also allow direct URL in imdb field.
-  const normalizedQuery = query ?? (imdb && imdb.startsWith('http') ? undefined : imdb);
+  const { query, imdb, limit = 10, href, year } = request.body ?? {};
+  const normalizedQuery = query ?? (imdb && !imdb.startsWith('http') ? imdb : undefined);
   const normalizedHref = href ?? (imdb && imdb.startsWith('http') ? imdb : undefined);
 
   if (!normalizedQuery && !normalizedHref) {
@@ -108,8 +106,9 @@ fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
       }
     }
 
-    const streams = items[0]?.streams ?? [];
-    return { items, streams };
+    const filteredItems = year ? items.filter((i) => i.year === year) : items;
+    const streams = filteredItems[0]?.streams ?? items[0]?.streams ?? [];
+    return { items: filteredItems, streams };
   } catch (error) {
     request.log.error({ err: error }, 'Rezka search failed');
     reply.code(502);
