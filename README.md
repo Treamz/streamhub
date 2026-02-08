@@ -7,7 +7,8 @@ Modular backend platform that aggregates video streams from multiple sources and
 - `providers/` — source provider services implementing `/query` and returning canonical Items + Streams.
 - `providers/rezka-provider/` — scraper for rezka (default mirror `https://rezkaproxy.treamz.me`), accepts `query` or direct `href`, extracts streams/subtitles from player config.
 - `providers/eneyida-provider/` — scraper for eneyida (`https://eneyida.tv`), accepts `query` or `href`, extracts streams from common player tags.
-- `providers/uaflix-provider/` — scraper for uafix/uaflix (`https://uafix.net`), accepts `query` or `href`, parses iframe players (Ashdi/m3u8), supports `season`/`episode` when JSON is present.
+- `providers/uaflix-provider/` — scraper for uafix/uaflix (`https://uafix.net`), accepts `query` or `href`, parses iframe players (Ashdi/m3u8), supports `season`/`episode` when JSON present.
+- `providers/kodik-provider/` — Kodik API client (requires `KODIK_TOKEN`, optional `KODIK_API_URL`), accepts imdb/kinopoisk/title, returns episodes when available.
 - `adapters/` — client-facing adapters.
 - `adapters/stremio-adapter/` — Stremio addon that proxies requests to the core; supports per-user debrid (Real-Debrid) via manifest config and `/stremio/configure` helper endpoint.
 - `adapters/lampa-adapter/` — serves Lampa plugin JS (`/plugin.js`) and `/streams`; extra `online_mod.js` plugin mimics popular online_mod UI.

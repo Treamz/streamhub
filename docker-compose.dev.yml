@@ -72,6 +72,22 @@ services:
     depends_on:
       - core
 
+  kodik-provider:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./providers/kodik-provider:/app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      - PORT=4400
+      - KODIK_API_URL=https://kodikapi.com
+      - KODIK_TOKEN=${KODIK_TOKEN}
+      - NODE_ENV=development
+    ports:
+      - "4400:4400"
+    depends_on:
+      - core
+
   stremio-adapter:
     image: node:20
     working_dir: /app

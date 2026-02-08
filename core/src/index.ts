@@ -39,7 +39,7 @@ interface ProviderResponse {
 }
 
 const PORT = Number(process.env.PORT ?? 8080);
-const PROVIDER_ENDPOINTS = (process.env.PROVIDERS ?? 'http://sample-provider:4000/query,http://rezka-provider:4100/query,http://eneyida-provider:4200/query,http://uaflix-provider:4300/query')
+const PROVIDER_ENDPOINTS = (process.env.PROVIDERS ?? 'http://sample-provider:4000/query,http://rezka-provider:4100/query,http://eneyida-provider:4200/query,http://uaflix-provider:4300/query,http://kodik-provider:4400/query')
   .split(',')
   .map((url) => url.trim())
   .filter(Boolean);

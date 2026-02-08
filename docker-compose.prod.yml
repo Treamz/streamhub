@@ -76,6 +76,17 @@ services:
       - traefik.enable=false
     restart: unless-stopped
 
+  kodik-provider:
+    build: ./providers/kodik-provider
+    environment:
+      - PORT=4400
+      - KODIK_API_URL=https://kodikapi.com
+      - KODIK_TOKEN=${KODIK_TOKEN}
+      - NODE_ENV=production
+    labels:
+      - traefik.enable=false
+    restart: unless-stopped
+
   stremio-adapter:
     build: ./adapters/stremio-adapter
     environment:

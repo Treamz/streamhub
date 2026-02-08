@@ -49,6 +49,17 @@ services:
     depends_on:
       - core
 
+  kodik-provider:
+    build: ./providers/kodik-provider
+    environment:
+      - PORT=4400
+      - KODIK_API_URL=https://kodikapi.com
+      - KODIK_TOKEN=${KODIK_TOKEN}
+    ports:
+      - "4400:4400"
+    depends_on:
+      - core
+
   stremio-adapter:
     build: ./adapters/stremio-adapter
     environment:
