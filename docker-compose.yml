@@ -27,6 +27,18 @@ services:
     ports:
       - "4100:4100"
 
+  eneyida-provider:
+    build: ./providers/eneyida-provider
+    environment:
+      - PORT=4200
+      - ENEYIDA_BASE_URL=https://eneyida.tv
+    ports:
+      - "4200:4200"
+    depends_on:
+      - core
+      - rezka-provider
+      - sample-provider
+
   stremio-adapter:
     build: ./adapters/stremio-adapter
     environment:

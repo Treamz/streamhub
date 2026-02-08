@@ -5,7 +5,8 @@ Modular backend platform that aggregates video streams from multiple sources and
 ## Layout
 - `core/` — API gateway exposing canonical `/query` endpoint and dispatching to providers.
 - `providers/` — source provider services implementing `/query` and returning canonical Items + Streams.
-- `providers/rezka-provider/` — scraper for rezka.ag search or direct `href`, now extracts streams/subtitles from player config.
+- `providers/rezka-provider/` — scraper for rezka (default mirror `https://rezkaproxy.treamz.me`), accepts `query` or direct `href`, extracts streams/subtitles from player config.
+- `providers/eneyida-provider/` — scraper for eneyida (`https://eneyida.tv`), accepts `query` or `href`, extracts streams from common player tags.
 - `adapters/` — client-facing adapters.
 - `adapters/stremio-adapter/` — Stremio addon that proxies requests to the core; supports per-user debrid (Real-Debrid) via manifest config and `/stremio/configure` helper endpoint.
 - `adapters/lampa-adapter/` — serves Lampa plugin JS (`/plugin.js`) and `/streams`; extra `online_mod.js` plugin mimics popular online_mod UI.
@@ -15,7 +16,7 @@ Modular backend platform that aggregates video streams from multiple sources and
 1. Install Node.js >= 20.
 2. From the repo root run `npm install` to install dev tooling (lint/test tasks).
 3. Start baseline stack: `docker compose up --build`.
-4. Dev hot reload: `docker compose -f docker-compose.dev.yml up core stremio-adapter lampa-adapter rezka-provider`.
+4. Dev hot reload: `docker compose -f docker-compose.dev.yml up core stremio-adapter lampa-adapter rezka-provider eneyida-provider`.
 5. Prod with subdomains/HTTPS (Traefik): set `CORE_HOST`, `STREMIO_HOST`, `LAMPA_HOST`, `ACME_EMAIL`, then `docker compose -f docker-compose.prod.yml up -d --build`.
 6. Query the core: `curl -X POST http://localhost:8080/query -d '{"query":"Matrix"}' -H 'Content-Type: application/json'`.
 7. Open Swagger UI: http://localhost:8080/docs
@@ -23,6 +24,7 @@ Modular backend platform that aggregates video streams from multiple sources and
 9. Lampa online_mod-compatible: http://localhost:7011/online_mod.js
 10. Stremio manifest: http://localhost:7010/manifest.json
 11. Stremio configure helper: http://localhost:7010/stremio/configure?debridProvider=realdebrid&debridToken=TOKEN
+12. Eneyida provider health: http://localhost:4200/health
 
 ## Canonical QueryRequest
 ```json

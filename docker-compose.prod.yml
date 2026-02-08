@@ -56,6 +56,16 @@ services:
       - traefik.enable=false
     restart: unless-stopped
 
+  eneyida-provider:
+    build: ./providers/eneyida-provider
+    environment:
+      - PORT=4200
+      - ENEYIDA_BASE_URL=https://eneyida.tv
+      - NODE_ENV=production
+    labels:
+      - traefik.enable=false
+    restart: unless-stopped
+
   stremio-adapter:
     build: ./adapters/stremio-adapter
     environment:
