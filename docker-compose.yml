@@ -5,12 +5,16 @@ services:
     build: ./core
     environment:
       - PORT=8080
-      - PROVIDERS=http://sample-provider:4000/query,http://rezka-provider:4100/query
+      - PROVIDERS=http://sample-provider:4000/query,http://rezka-provider:4100/query,http://eneyida-provider:4200/query,http://uaflix-provider:4300/query,http://kodik-provider:4400/query,http://uaserial-provider:4500/query
     ports:
       - "8080:8080"
     depends_on:
       - sample-provider
       - rezka-provider
+      - eneyida-provider
+      - uaflix-provider
+      - kodik-provider
+      - uaserial-provider
 
   sample-provider:
     build: ./providers/sample-provider
@@ -57,6 +61,16 @@ services:
       - KODIK_TOKEN=${KODIK_TOKEN}
     ports:
       - "4400:4400"
+    depends_on:
+      - core
+
+  uaserial-provider:
+    build: ./providers/uaserial-provider
+    environment:
+      - PORT=4500
+      - UASERIAL_BASE_URL=https://uaserial.tv
+    ports:
+      - "4500:4500"
     depends_on:
       - core
 

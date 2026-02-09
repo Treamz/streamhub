@@ -9,6 +9,7 @@ Modular backend platform that aggregates video streams from multiple sources and
 - `providers/eneyida-provider/` — scraper for eneyida (`https://eneyida.tv`), accepts `query`/`imdb` or `href`, optional `year`, extracts streams from common player tags and PlayerJS configs (Ashdi/hdvb).
 - `providers/uaflix-provider/` — scraper for uafix/uaflix (`https://uafix.net`), accepts `query`/`imdb` or `href`, optional `year`, parses iframe players (Ashdi/m3u8), supports `season`/`episode` when JSON present.
 - `providers/kodik-provider/` — Kodik API client (requires `KODIK_TOKEN`, optional `KODIK_API_URL`), accepts imdb/kinopoisk/title, optional `year`, returns episodes when available.
+- `providers/uaserial-provider/` — scraper for UASerial (`https://uaserial.tv`), accepts `query`/`imdb` or `href`, optional `year`, supports season/episode and multiple voices (PlayerJS/hdvb embeds).
 - `adapters/` — client-facing adapters.
 - `adapters/stremio-adapter/` — Stremio addon that proxies requests to the core; supports per-user debrid (Real-Debrid) via manifest config and `/stremio/configure` helper endpoint.
 - `adapters/lampa-adapter/` — serves Lampa plugin JS (`/plugin.js`) and `/streams`; extra `online_mod.js` plugin mimics popular online_mod UI.

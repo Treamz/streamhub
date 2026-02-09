@@ -10,6 +10,7 @@ You are an autonomous coding agent working on **StreamHub**.
   - `providers/rezka-provider/` — scrapes rezka (default mirror `https://rezkaproxy.treamz.me`). Env: `REZKA_BASE_URL`, `REZKA_USER_AGENT`. Streams parsed from player config.
   - `providers/eneyida-provider/` — scraper for eneyida (default `https://eneyida.tv`). Env: `ENEYIDA_BASE_URL`, `ENEYIDA_USER_AGENT`. Tries search + detail, extracts streams from common player patterns.
   - `providers/uaflix-provider/` — scraper for uafix/uaflix (default `https://uafix.net`). Env: `UAFLIX_BASE_URL`, `UAFLIX_USER_AGENT`. Parses search, iframes (Ashdi/m3u8), supports season/episode when JSON is present.
+  - `providers/uaserial-provider/` — scraper for UASerial (default `https://uaserial.tv`). Env: `UASERIAL_BASE_URL`, `UASERIAL_USER_AGENT`. Uses search-ajax, parses detail + iframe PlayerJS/hdvb configs; supports season/episode and multiple voices.
   - `providers/kodik-provider/` — fetches from Kodik API (`KODIK_TOKEN`, optional `KODIK_API_URL`). Supports imdb/kinopoisk/title search, with episodes/seasons when provided.
 - Adapters (client-facing, transform only):
   - `adapters/stremio-adapter/` — Stremio addon proxying core. Endpoints: `/manifest.json`, `/catalog/:type/:id.json` (requires `search` query), `/stream/:type/:id.json` (imdb ids). Health `/health`. Env: `CORE_URL` (default `http://core:8080`), `STREMIO_ID`, `STREMIO_NAME`, `PORT`.

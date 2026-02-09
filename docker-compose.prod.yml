@@ -24,11 +24,15 @@ services:
     build: ./core
     environment:
       - PORT=8080
-      - PROVIDERS=http://sample-provider:4000/query,http://rezka-provider:4100/query
+      - PROVIDERS=http://sample-provider:4000/query,http://rezka-provider:4100/query,http://eneyida-provider:4200/query,http://uaflix-provider:4300/query,http://kodik-provider:4400/query,http://uaserial-provider:4500/query
       - NODE_ENV=production
     depends_on:
       - sample-provider
       - rezka-provider
+      - eneyida-provider
+      - uaflix-provider
+      - kodik-provider
+      - uaserial-provider
     labels:
       - traefik.enable=true
       - traefik.http.routers.core.rule=Host(`${CORE_HOST}`)
@@ -82,6 +86,16 @@ services:
       - PORT=4400
       - KODIK_API_URL=https://kodikapi.com
       - KODIK_TOKEN=${KODIK_TOKEN}
+      - NODE_ENV=production
+    labels:
+      - traefik.enable=false
+    restart: unless-stopped
+
+  uaserial-provider:
+    build: ./providers/uaserial-provider
+    environment:
+      - PORT=4500
+      - UASERIAL_BASE_URL=https://uaserial.tv
       - NODE_ENV=production
     labels:
       - traefik.enable=false

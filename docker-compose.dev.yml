@@ -9,13 +9,17 @@ services:
     command: sh -c "npm install && npm run dev"
     environment:
       - PORT=8080
-      - PROVIDERS=http://sample-provider:4000/query,http://rezka-provider:4100/query
+      - PROVIDERS=http://sample-provider:4000/query,http://rezka-provider:4100/query,http://eneyida-provider:4200/query,http://uaflix-provider:4300/query,http://kodik-provider:4400/query,http://uaserial-provider:4500/query
       - NODE_ENV=development
     ports:
       - "8080:8080"
     depends_on:
       - sample-provider
       - rezka-provider
+      - eneyida-provider
+      - uaflix-provider
+      - kodik-provider
+      - uaserial-provider
 
   sample-provider:
     image: node:20
@@ -54,8 +58,6 @@ services:
       - NODE_ENV=development
     ports:
       - "4200:4200"
-    depends_on:
-      - core
 
   uaflix-provider:
     image: node:20
@@ -69,8 +71,6 @@ services:
       - NODE_ENV=development
     ports:
       - "4300:4300"
-    depends_on:
-      - core
 
   kodik-provider:
     image: node:20
@@ -85,8 +85,19 @@ services:
       - NODE_ENV=development
     ports:
       - "4400:4400"
-    depends_on:
-      - core
+
+  uaserial-provider:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./providers/uaserial-provider:/app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      - PORT=4500
+      - UASERIAL_BASE_URL=https://uaserial.tv
+      - NODE_ENV=development
+    ports:
+      - "4500:4500"
 
   stremio-adapter:
     image: node:20
