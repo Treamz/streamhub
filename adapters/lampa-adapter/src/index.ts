@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import cors from '@fastify/cors';
 import fs from 'fs';
 import path from 'path';
 
@@ -21,6 +22,10 @@ interface CoreResponse {
 
 const fastify = Fastify({ logger: true });
 
+await fastify.register(cors, {
+  origin: '*',
+});
+
 fastify.get('/health', async () => ({ status: 'ok' }));
 
 fastify.get('/plugin.js', async (_req, reply) => {
@@ -36,14 +41,15 @@ fastify.get('/online_mod.js', async (_req, reply) => {
 });
 
 fastify.get('/streams', async (request, reply) => {
-  const { imdb, season, episode } = request.query as Record<string, string | undefined>;
-  if (!imdb) {
-    reply.code(400);
-    return { error: 'imdb query param required' };
+  const { imdb, query, season, episode } = request.query as Record<string, string | undefined>;
+  if (!imdb && !query) {
+    // Gracefully return empty to avoid client errors when plugin lacks context
+    return { streams: [] };
   }
   try {
     const payload = {
       imdb,
+      query,
       season: season ? Number(season) : undefined,
       episode: episode ? Number(episode) : undefined,
     };

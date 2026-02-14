@@ -10,7 +10,8 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "fastify": "^4.28.1"
+    "fastify": "^4.28.1",
+    "@fastify/cors": "^9.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
