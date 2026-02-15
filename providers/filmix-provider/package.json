@@ -1,5 +1,5 @@
 {
-  "name": "rezka-provider",
+  "name": "filmix-provider",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
@@ -11,9 +11,7 @@
   },
   "dependencies": {
     "fastify": "^4.28.1",
-    "node-fetch": "^3.3.2",
-    "cheerio": "^1.0.0-rc.12",
-    "socks-proxy-agent": "^8.0.2"
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

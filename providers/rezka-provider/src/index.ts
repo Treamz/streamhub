@@ -38,6 +38,32 @@ const BASE_URL = (process.env.REZKA_BASE_URL ?? 'https://rezkaproxy.treamz.me').
 const USER_AGENT =
   process.env.REZKA_USER_AGENT ??
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+const COOKIE = process.env.REZKA_COOKIE ?? '';
+const PROXY = process.env.REZKA_PROXY; // e.g. socks5://user:pass@host:1080
+
+let proxyAgent: any = undefined;
+async function getProxyAgent(log: any) {
+  if (proxyAgent !== undefined) return proxyAgent;
+  if (!PROXY) {
+    proxyAgent = null;
+    return proxyAgent;
+  }
+  try {
+    const { SocksProxyAgent } = await import('socks-proxy-agent');
+    proxyAgent = new SocksProxyAgent(PROXY);
+    log?.info({ PROXY }, 'rezka proxy enabled');
+  } catch (err) {
+    proxyAgent = null;
+    log?.warn({ err, PROXY }, 'rezka proxy init failed');
+  }
+  return proxyAgent;
+}
+
+async function fetchWithProxy(url: string, opts: any, log: any) {
+  const agent = await getProxyAgent(log);
+  const merged = agent ? { ...opts, agent } : opts;
+  return fetch(url, merged);
+}
 
 const fastify = Fastify({ logger: true });
 
@@ -63,7 +89,19 @@ fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
 
     if (normalizedQuery) {
       const searchUrl = `${BASE_URL}/index.php?do=search&subaction=search&q=${encodeURIComponent(normalizedQuery)}`;
-      const response = await fetch(searchUrl, { headers: { 'User-Agent': USER_AGENT } });
+      const response = await fetchWithProxy(
+        searchUrl,
+        {
+          headers: {
+            'User-Agent': USER_AGENT,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'ru,en;q=0.9',
+            'Cache-Control': 'no-cache',
+            ...(COOKIE ? { Cookie: COOKIE } : {}),
+          },
+        },
+        request.log,
+      );
       if (!response.ok) throw new Error(`Search failed with ${response.status}`);
       const html = await response.text();
       request.log.info({ searchUrl, status: response.status, len: html.length }, 'rezka search fetched');
@@ -117,7 +155,19 @@ fastify.post<{ Body: QueryRequest }>('/query', async (request, reply) => {
 });
 
 async function scrapeDetail(url: string): Promise<Item | null> {
-  const response = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+  const response = await fetchWithProxy(
+    url,
+    {
+      headers: {
+        'User-Agent': USER_AGENT,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'ru,en;q=0.9',
+        'Cache-Control': 'no-cache',
+        ...(COOKIE ? { Cookie: COOKIE } : {}),
+      },
+    },
+    fastify.log,
+  );
   if (!response.ok) throw new Error(`Detail fetch failed ${response.status}`);
   const html = await response.text();
   const $ = load(html);

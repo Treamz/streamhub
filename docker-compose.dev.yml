@@ -9,7 +9,7 @@ services:
     command: sh -c "npm install && npm run dev"
     environment:
       - PORT=8080
-      - PROVIDERS=http://sample-provider:4000/query,http://rezka-provider:4100/query,http://eneyida-provider:4200/query,http://uaflix-provider:4300/query,http://kodik-provider:4400/query,http://uaserial-provider:4500/query
+      - PROVIDERS=http://sample-provider:4000/query,http://rezka-provider:4100/query,http://eneyida-provider:4200/query,http://uaflix-provider:4300/query,http://kodik-provider:4400/query,http://uaserial-provider:4500/query,http://filmix-provider:4800/query
       - NODE_ENV=development
     ports:
       - "8080:8080"
@@ -41,10 +41,26 @@ services:
     command: sh -c "npm install && npm run dev"
     environment:
       - PORT=4100
-      - REZKA_BASE_URL=https://rezkaproxy.treamz.me
+      - REZKA_BASE_URL=https://rezka-ua.tv
+      - REZKA_PROXY=${REZKA_PROXY:-}
       - NODE_ENV=development
     ports:
       - "4100:4100"
+
+  filmix-provider:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./providers/filmix-provider:/app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      - PORT=4800
+      - FILMIX_TOKEN=${FILMIX_TOKEN:-}
+      - FILMIX_HLS=${FILMIX_HLS:-false}
+      - FILMIX_RESERVE=${FILMIX_RESERVE:-false}
+      - NODE_ENV=development
+    ports:
+      - "4800:4800"
 
   eneyida-provider:
     image: node:20
