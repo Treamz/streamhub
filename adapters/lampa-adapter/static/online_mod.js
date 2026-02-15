@@ -54,6 +54,7 @@
     if (payload.query) qs.set('query', payload.query)
     if (payload.season) qs.set('season', payload.season)
     if (payload.episode) qs.set('episode', payload.episode)
+    if (payload.year) qs.set('year', payload.year)
     return fetch(ORIGIN + '/streams?' + qs.toString())
       .then((r) => r.json())
       .then((d) => d.streams || [])
@@ -86,6 +87,7 @@
         query: movie.original_title || movie.original_name || movie.title || movie.name || titleOverride,
         season,
         episode,
+        year: movie.release_date ? String(movie.release_date).slice(0,4) : movie.first_air_date ? String(movie.first_air_date).slice(0,4) : undefined,
       }
       this.loading(true)
       fetchStreams(payload).then((streams) => {

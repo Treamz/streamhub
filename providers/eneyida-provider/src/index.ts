@@ -138,7 +138,9 @@ function parseSearch(html: string, limit: number): Item[] {
     const href = $(el).find('a.short_title').attr('href');
     let poster = $(el).find('a.short_img img').attr('data-src') || $(el).find('img').attr('src');
     if (poster && poster.startsWith('/')) poster = BASE_URL + poster;
-    const yearMatch = $(el).text().match(/(19|20)\d{2}/);
+    // year can be in subtitle like "2025 • Fallout"
+    const shortSubtitle = $(el).find('.short_subtitle').text();
+    const yearMatch = shortSubtitle.match(/(19|20)\d{2}/) || $(el).text().match(/(19|20)\d{2}/);
     const year = yearMatch ? Number(yearMatch[0]) : undefined;
     if (href && title) {
       items.push({ id: href, title, type: 'movie', year, poster, streams: [] });
@@ -157,6 +159,7 @@ function parseSearch(html: string, limit: number): Item[] {
 }
 
 async function loadDetail(url: string, request: any, season?: number, episode?: number): Promise<Item | null> {
+  request.log.info({ url, season, episode }, 'eneyida detail fetch');
   const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
   if (!res.ok) throw new Error(`detail status ${res.status}`);
   const html = await res.text();

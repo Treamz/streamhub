@@ -41,7 +41,7 @@ fastify.get('/online_mod.js', async (_req, reply) => {
 });
 
 fastify.get('/streams', async (request, reply) => {
-  const { imdb, query, season, episode } = request.query as Record<string, string | undefined>;
+  const { imdb, query, season, episode, year } = request.query as Record<string, string | undefined>;
   if (!imdb && !query) {
     // Gracefully return empty to avoid client errors when plugin lacks context
     return { streams: [] };
@@ -52,6 +52,7 @@ fastify.get('/streams', async (request, reply) => {
       query,
       season: season ? Number(season) : undefined,
       episode: episode ? Number(episode) : undefined,
+      year: year ? Number(year) : undefined,
     };
     const res = await fetch(`${CORE_URL}/query`, {
       method: 'POST',
