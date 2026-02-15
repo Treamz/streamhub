@@ -18,6 +18,7 @@
     ```
   - Stremio manifest: http://localhost:7010/manifest.json
   - Lampa plugin: http://localhost:7011/plugin.js
+  - Lampa online_mod: http://localhost:7011/online_mod.js
 
 ## Running a single provider in dev
 - Example (uaserial):
@@ -77,4 +78,3 @@ Providers should filter by `year` when present and use `season`/`episode` to pic
 - Enable a single provider + core to isolate failures.
 - For scraping issues, log the iframe/player HTML and look for `file`/`link`/`.m3u8` entries.
 - Per-provider timeouts: core uses 8s timeout per provider.
-

@@ -81,22 +81,21 @@
     }
 
     const loadStreams = ({ movie, season, episode, titleOverride }) => {
-      // MOCK: заменить на fetchStreams(payload)
       const payload = {
         imdb: movie.imdb_id || movie.imdb,
-        query: movie.title || movie.name || titleOverride,
+        query: movie.original_title || movie.original_name || movie.title || movie.name || titleOverride,
         season,
         episode,
       }
-      // Заглушка: имитируем ответ
-      const mock = [
-        { title: `${titleOverride || payload.query} • ${season ? 'S'+season : ''}${episode ? 'E'+episode : ''} 1080p`, quality: '1080p', source: 'Mock', url: 'https://example.com/stream1.m3u8' },
-        { title: `${titleOverride || payload.query} • ${season ? 'S'+season : ''}${episode ? 'E'+episode : ''} 720p`, quality: '720p', source: 'Mock', url: 'https://example.com/stream2.m3u8' }
-      ]
-      setTimeout(() => {
+      this.loading(true)
+      fetchStreams(payload).then((streams) => {
         this.loading(false)
-        drawStreams(mock, movie, season)
-      }, 300)
+        if (!streams.length) return this.empty()
+        drawStreams(streams, movie, season)
+      }).catch(() => {
+        this.loading(false)
+        this.empty()
+      })
     }
 
     const showSeasons = (movie) => {
@@ -145,11 +144,21 @@
         back.on('hover:focus', (e) => { last = e.target; scroll.update($(e.target), true) })
         scroll.append(back)
 
+        const now = Date.now()
         episodes.forEach((ep) => {
-          const meta = `${t('season')} ${seasonNumber} · ${t('episode')} ${ep.episode_number}`
+          const metaParts = [`${t('season')} ${seasonNumber}`, `${t('episode')} ${ep.episode_number}`]
+          const airDateStr = ep.air_date ? Lampa.Utils.parseTime(ep.air_date).full : ''
+          if (airDateStr) metaParts.push(airDateStr)
+          const meta = metaParts.join(' · ')
           const title = ep.name || meta
           const card = Lampa.Template.get('wtch_simple_item', { title, meta })
-          card.on('hover:enter', () => loadStreams({ movie, season: seasonNumber, episode: ep.episode_number, titleOverride: title }))
+          const airDateMs = ep.air_date ? new Date((ep.air_date + '').replace(/-/g, '/')).getTime() : 0
+          const notAired = airDateMs && airDateMs > now
+          if (notAired) {
+            card.css('opacity', '0.45')
+          } else {
+            card.on('hover:enter', () => loadStreams({ movie, season: seasonNumber, episode: ep.episode_number, titleOverride: title }))
+          }
           card.on('hover:focus', (e) => { last = e.target; scroll.update($(e.target), true) })
           scroll.append(card)
         })

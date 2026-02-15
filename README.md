@@ -12,7 +12,7 @@ Modular backend platform that aggregates video streams from multiple sources and
 - `providers/uaserial-provider/` — scraper for UASerial (`https://uaserial.tv`), accepts `query`/`imdb` or `href`, optional `year`, supports season/episode and multiple voices (PlayerJS/hdvb embeds).
 - `adapters/` — client-facing adapters.
 - `adapters/stremio-adapter/` — Stremio addon that proxies requests to the core; supports per-user debrid (Real-Debrid) via manifest config and `/stremio/configure` helper endpoint.
-- `adapters/lampa-adapter/` — serves Lampa plugin JS (`/plugin.js`) and `/streams`; extra `online_mod.js` plugin mimics popular online_mod UI.
+- `adapters/lampa-adapter/` — serves Lampa plugin JS (`/plugin.js`) and `/streams`; см. подробности в [lampa-adapter.md](lampa-adapter.md).
 - Compose files: `docker-compose.yml` (baseline), `docker-compose.prod.yml` (Traefik + HTTPS subdomains), `docker-compose.dev.yml` (bind mounts + nodemon for live dev).
 
 ## Quickstart
