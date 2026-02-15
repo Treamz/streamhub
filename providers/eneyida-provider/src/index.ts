@@ -317,7 +317,7 @@ function pushStream(acc: Stream[], urlRaw?: string, title?: string, source?: str
     title: title || quality || 'Stream',
     url,
     quality,
-    source: source || 'eneyida',
+    source: 'eneyida',
   });
 }
 
