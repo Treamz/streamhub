@@ -40,10 +40,11 @@
       .online-item{padding:1em;background:rgba(255,255,255,0.08);border-radius:.35em;margin-bottom:.7em;line-height:1.4}
       .online-item__title{font-size:1.2em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .online-item__meta{opacity:.7;font-size:.95em;margin-top:.2em}
+      .online-item.focus{background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35)}
       .online-empty{padding:1em 0}
       .online-empty__title{font-size:1.3em;margin-bottom:.2em}
       .online-empty__time{opacity:.7}
-      .view--online_wtch svg{margin-right:.25em}
+      .view--online_streamhub svg{margin-right:.25em}
       </style>`)
     $('body').append(Lampa.Template.get('wtch_css', {}, true))
   }
