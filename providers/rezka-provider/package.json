@@ -10,15 +10,16 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
     "fastify": "^4.28.1",
     "node-fetch": "^3.3.2",
-    "cheerio": "^1.0.0-rc.12",
+    "puppeteer": "^22.15.0",
     "socks-proxy-agent": "^8.0.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "nodemon": "^3.1.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3",
-    "nodemon": "^3.1.0"
+    "typescript": "^5.3.3"
   }
 }

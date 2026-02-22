@@ -11,12 +11,13 @@
   },
   "dependencies": {
     "fastify": "^4.28.1",
+    "kodikwrapper": "^3.0.5",
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "nodemon": "^3.1.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3",
-    "nodemon": "^3.1.0"
+    "typescript": "^5.3.3"
   }
 }
